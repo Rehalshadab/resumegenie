@@ -1,26 +1,19 @@
 import { Router } from "express";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
-async function callClaude(systemPrompt, userPrompt) {
+async function callGemini(systemPrompt, userPrompt) {
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    return response.content[0].text;
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const result = await model.generateContent([
+      { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] },
+    ]);
+    return result.response.text();
   } catch (error) {
-    console.error("Claude API error:", error.message);
-    if (error.message?.includes("credit balance")) {
-      throw new Error("Claude API credit balance low. Add credits at https://console.anthropic.com");
-    }
+    console.error("Gemini API error:", error.message);
     throw new Error("AI generation failed. Please try again.");
   }
 }
@@ -36,14 +29,14 @@ router.post("/generate", async (req, res) => {
     let coverLetter = "";
 
     if (action === "resume" || action === "both") {
-      resumeText = await callClaude(
+      resumeText = await callGemini(
         `You are a professional resume writer specializing in the Indian job market. Create an ATS-friendly resume for the following candidate. Format it cleanly with these sections: Summary, Education, Skills, Experience/Projects, Certifications. Make it compelling, use strong action verbs, quantify achievements where possible. Return ONLY valid JSON with sections as keys (summary, education, skills, experience, certifications). Do not wrap in markdown code blocks.`,
         `Candidate Data:\n${candidateJSON}\n\nJob Role: ${formData.jobRole || "Not specified"}\nJob Description: ${formData.jobDescription || "Not provided"}\nResume Tone: ${formData.resumeTone || "Professional"}`
       );
     }
 
     if (action === "coverletter" || action === "both") {
-      coverLetter = await callClaude(
+      coverLetter = await callGemini(
         `You are an expert cover letter writer for the Indian job market. Write a professional, personalized cover letter for this candidate. Tone: confident but humble, suitable for Indian corporate culture. Length: 3 paragraphs. Return plain text only, no markdown.`,
         `Candidate: ${formData.name || "Candidate"}\nJob Role: ${formData.jobRole || "Software Engineer"}\nSkills: ${formData.skills || "Not specified"}\nExperience: ${formData.experience || "Fresher"}\nEducation: ${JSON.stringify(formData.education || {})}`
       );
