@@ -11,8 +11,11 @@ async function callGemini(systemPrompt, userPrompt) {
     const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
     return result.response.text();
   } catch (error) {
-    console.error("Gemini API error:", error.message, error.status, JSON.stringify(error));
-    throw new Error("AI generation failed: " + (error.message || "Unknown error"));
+    console.error("Gemini API error:", error.message);
+    if (error.message?.includes("quota") || error.message?.includes("429")) {
+      throw new Error("Gemini API rate limit reached. Try again in a minute.");
+    }
+    throw new Error("AI generation failed. Please try again.");
   }
 }
 
