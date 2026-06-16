@@ -23,14 +23,14 @@ export default function Testimonials() {
   return (
     <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="section-title mb-4">Loved by 10,000+ Job Seekers</h2>
-        <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto">
+        <h2 className="section-title mb-4 scroll-reveal">Loved by 10,000+ Job Seekers</h2>
+        <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto scroll-reveal">
           Hear from freshers and graduates who landed their dream jobs with ResumeGenie.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {testimonials.map((t, i) => (
-            <div key={i} className="card p-6 md:p-8 fade-in" style={{ animationDelay: `${i * 150}ms` }}>
+            <div key={i} className="card p-6 md:p-8 scroll-reveal" style={{ transitionDelay: `${i * 150}ms` }}>
               <div className="flex gap-1 mb-4">
                 {Array.from({ length: t.rating }).map((_, j) => (
                   <svg key={j} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">

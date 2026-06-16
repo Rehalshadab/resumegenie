@@ -25,18 +25,18 @@ export default function Pricing() {
   return (
     <section id="pricing" className="py-20 md:py-28 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="section-title mb-4">Simple, Affordable Pricing</h2>
-        <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto">
+        <h2 className="section-title mb-4 scroll-reveal">Simple, Affordable Pricing</h2>
+        <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto scroll-reveal">
           One-time payment. No subscriptions. Instant PDF after payment.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {plans.map((plan, i) => (
-            <div key={i} className={`relative rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02] fade-in ${
+            <div key={i} className={`relative rounded-2xl p-8 transition-all duration-300 hover:scale-[1.02] scroll-reveal ${
               plan.popular
                 ? 'bg-primary-600 text-white shadow-2xl shadow-primary-200'
                 : 'bg-white border-2 border-gray-100 shadow-md'
-            }`} style={{ animationDelay: `${i * 150}ms` }}>
+            }`} style={{ transitionDelay: `${i * 150}ms` }}>
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-4 py-1 rounded-full">
                   Most Popular
