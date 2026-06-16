@@ -1,22 +1,54 @@
 import { Router } from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+function generateResume(data) {
+  const skills = Array.isArray(data.skills) ? data.skills : (data.skills || "").split(",").map(s => s.trim()).filter(Boolean);
+  const education = data.education || {};
+  const projects = data.projects || [];
 
-async function callGemini(systemPrompt, userPrompt) {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
-    return result.response.text();
-  } catch (error) {
-    console.error("Gemini API error:", error.message);
-    if (error.message?.includes("quota") || error.message?.includes("429")) {
-      throw new Error("Gemini API rate limit reached. Try again in a minute.");
-    }
-    throw new Error("AI generation failed. Please try again.");
-  }
+  const summary = `${data.name || "Candidate"} is a motivated ${data.jobRole || "professional"}${education.degree ? " with a " + education.degree : ""}${education.branch ? " in " + education.branch : ""} seeking to leverage technical skills and academic background in a challenging role. ${skills.length > 0 ? "Proficient in " + skills.slice(0, 4).join(", ") + "." : ""} A quick learner with strong problem-solving abilities and a passion for building impactful solutions.`;
+
+  const eduStr = education.degree
+    ? `${education.degree}${education.branch ? " in " + education.branch : ""} — ${education.college || "University"}${education.graduationYear ? " (" + education.graduationYear + ")" : ""}${education.cgpa ? " | CGPA/Percentage: " + education.cgpa : ""}`
+    : "Details not provided";
+
+  const skillsStr = skills.length > 0 ? skills.join(", ") : "Not specified";
+
+  const experienceStr = data.isFresher === false && data.company
+    ? `${data.compRole || "Role"} at ${data.company}${data.compDuration ? " (" + data.compDuration + ")" : ""}\n${data.responsibilities || ""}`
+    : null;
+
+  const projectsStr = projects.filter(p => p.name).map(p =>
+    `${p.name}${p.desc ? ": " + p.desc : ""}`
+  );
+
+  const certsStr = data.certifications || null;
+
+  return {
+    summary: `${summary}`,
+    education: `${eduStr}`,
+    skills: `${skillsStr}`,
+    experience: experienceStr || projectsStr.length > 0
+      ? (experienceStr ? [experienceStr] : []).concat(projectsStr).join("\n\n")
+      : "Fresher — eager to contribute and grow in a professional environment.",
+    certifications: certsStr || "Not specified",
+  };
+}
+
+function generateCoverLetter(data) {
+  const name = data.name || "Candidate";
+  const role = data.jobRole || "the position";
+  const skills = Array.isArray(data.skills) ? data.skills : (data.skills || "").split(",").map(s => s.trim()).filter(Boolean);
+  const education = data.education || {};
+
+  const para1 = `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${role} position. As a ${education.degree || "qualified professional"}${education.branch ? " in " + education.branch : ""}${education.college ? " from " + education.college : ""}, I am confident that my skills and enthusiasm make me an ideal candidate for this role at your esteemed organization.`;
+
+  const para2 = `Throughout my academic and professional journey, I have developed strong expertise in ${skills.slice(0, 4).join(", ") || "relevant technologies and practices"}. I am passionate about applying my knowledge to solve real-world problems and contribute meaningfully to your team's success. ${data.isFresher === false && data.company ? "My experience at " + data.company + " has equipped me with practical skills in " + (data.compRole || "the field") + "." : "I am eager to start my professional career and bring fresh perspectives to your organization."}`;
+
+  const para3 = `I am excited about the opportunity to contribute to your company's growth while continuing to learn and develop as a professional. Thank you for considering my application. I look forward to the possibility of discussing how I can add value to your team.\n\nBest regards,\n${name}`;
+
+  return `${para1}\n\n${para2}\n\n${para3}`;
 }
 
 router.post("/generate", async (req, res) => {
@@ -24,45 +56,27 @@ router.post("/generate", async (req, res) => {
     const formData = req.body;
     const { action = "both" } = req.query;
 
-    const candidateJSON = JSON.stringify(formData, null, 2);
-
-    let resumeText = "";
-    let coverLetter = "";
+    let resume = null;
+    let coverLetter = null;
 
     if (action === "resume" || action === "both") {
-      resumeText = await callGemini(
-        `You are a professional resume writer specializing in the Indian job market. Create an ATS-friendly resume for the following candidate. Format it cleanly with these sections: Summary, Education, Skills, Experience/Projects, Certifications. Make it compelling, use strong action verbs, quantify achievements where possible. Return ONLY valid JSON with sections as keys (summary, education, skills, experience, certifications). Do not wrap in markdown code blocks.`,
-        `Candidate Data:\n${candidateJSON}\n\nJob Role: ${formData.jobRole || "Not specified"}\nJob Description: ${formData.jobDescription || "Not provided"}\nResume Tone: ${formData.resumeTone || "Professional"}`
-      );
+      resume = generateResume(formData);
     }
 
     if (action === "coverletter" || action === "both") {
-      coverLetter = await callGemini(
-        `You are an expert cover letter writer for the Indian job market. Write a professional, personalized cover letter for this candidate. Tone: confident but humble, suitable for Indian corporate culture. Length: 3 paragraphs. Return plain text only, no markdown.`,
-        `Candidate: ${formData.name || "Candidate"}\nJob Role: ${formData.jobRole || "Software Engineer"}\nSkills: ${formData.skills || "Not specified"}\nExperience: ${formData.experience || "Fresher"}\nEducation: ${JSON.stringify(formData.education || {})}`
-      );
-    }
-
-    let parsedResume = null;
-    if (resumeText) {
-      try {
-        const cleaned = resumeText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-        parsedResume = JSON.parse(cleaned);
-      } catch {
-        parsedResume = { raw: resumeText };
-      }
+      coverLetter = generateCoverLetter(formData);
     }
 
     res.json({
       success: true,
-      resume: parsedResume,
-      coverLetter: coverLetter || null,
+      resume,
+      coverLetter,
     });
   } catch (error) {
     console.error("Generate error:", error.message);
     res.status(500).json({
       success: false,
-      error: error.message || "Failed to generate resume. Please try again.",
+      error: "Failed to generate resume. Please try again.",
     });
   }
 });
