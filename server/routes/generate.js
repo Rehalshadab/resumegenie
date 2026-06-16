@@ -17,8 +17,8 @@ async function callClaude(systemPrompt, userPrompt) {
     });
     return response.content[0].text;
   } catch (error) {
-    console.error("Claude API error:", error.message);
-    throw new Error("AI generation failed. Please try again.");
+    console.error("Claude API error:", error.message, error.status, JSON.stringify(error.error || {}));
+    throw new Error(`AI generation failed: ${error.message}`);
   }
 }
 
