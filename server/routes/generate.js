@@ -7,14 +7,12 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 async function callGemini(systemPrompt, userPrompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent([
-      { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] },
-    ]);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
     return result.response.text();
   } catch (error) {
-    console.error("Gemini API error:", error.message);
-    throw new Error("AI generation failed. Please try again.");
+    console.error("Gemini API error:", error.message, error.status, JSON.stringify(error));
+    throw new Error("AI generation failed: " + (error.message || "Unknown error"));
   }
 }
 
