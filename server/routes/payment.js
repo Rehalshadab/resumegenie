@@ -1,56 +1,50 @@
 import { Router } from "express";
-import Razorpay from "razorpay";
 import crypto from "crypto";
 
 const router = Router();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const UPI_VPA = process.env.UPI_VPA || "BHARATPE2J0N0R6Y6R92963@unitype";
 
-router.post("/create-order", async (req, res) => {
+const plans = {
+  basic: { amount: 49, label: "Resume Only" },
+  pro: { amount: 79, label: "Resume + Cover Letter" },
+};
+
+router.post("/create-upi-order", async (req, res) => {
   try {
-    const { plan } = req.body;
-    const amount = plan === "pro" ? 7900 : 4900;
+    const { plan, name } = req.body;
+    const config = plans[plan] || plans.basic;
 
-    const options = {
-      amount: amount,
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    };
+    const orderId = `RG${Date.now()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const upiIntent = `upi://pay?pa=${UPI_VPA}&pn=ResumeGenie&am=${config.amount}&tn=${orderId}&cu=INR`;
 
-    const order = await razorpay.orders.create(options);
     res.json({
       success: true,
-      id: order.id,
-      amount: order.amount,
-      currency: order.currency,
+      orderId,
+      amount: config.amount,
+      plan: plan,
+      label: config.label,
+      upiIntent,
+      upiVpa: UPI_VPA,
+      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiIntent)}`,
     });
   } catch (error) {
-    console.error("Order creation error:", error.message);
-    res.status(500).json({ success: false, error: "Failed to create order. Please try again." });
+    console.error("UPI order error:", error.message);
+    res.status(500).json({ success: false, error: "Failed to create payment" });
   }
 });
 
-router.post("/verify", async (req, res) => {
+router.post("/verify-upi", async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(sign.toString())
-      .digest("hex");
-
-    if (expectedSign === razorpay_signature) {
-      res.json({ success: true, paymentId: razorpay_payment_id });
-    } else {
-      res.status(400).json({ success: false, error: "Invalid payment signature" });
+    const { orderId, utr } = req.body;
+    if (!orderId) {
+      res.status(400).json({ success: false, error: "Missing order ID" });
+      return;
     }
+    res.json({ success: true, message: "Payment recorded", orderId, utr: utr || null });
   } catch (error) {
-    console.error("Verification error:", error.message);
-    res.status(500).json({ success: false, error: "Payment verification failed" });
+    console.error("UPI verify error:", error.message);
+    res.status(500).json({ success: false, error: "Verification failed" });
   }
 });
 

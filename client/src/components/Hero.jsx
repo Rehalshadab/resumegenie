@@ -27,7 +27,7 @@ export default function Hero() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 fade-in">
             <Link to="/builder" className="btn-primary text-lg px-8 py-4 shadow-lg shadow-primary-200">
-              Build My Resume Free →
+              Build My Resume →
             </Link>
             <a href="#how-it-works" className="btn-secondary text-lg px-8 py-4">
               See Example ↓

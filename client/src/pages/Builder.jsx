@@ -124,6 +124,7 @@ export default function Builder() {
                   resume={result.resume}
                   coverLetter={result.coverLetter}
                   userData={userData}
+                  plan={initialPlan}
                   onPaymentSuccess={downloadPDF}
                 />
               </div>

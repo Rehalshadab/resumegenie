@@ -72,7 +72,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="text-center text-gray-400 text-sm mt-8">🔒 Secured by Razorpay | Instant PDF after payment</p>
+        <p className="text-center text-gray-400 text-sm mt-8">📱 Pay via UPI (GPay, PhonePe, Paytm) | Instant PDF after payment</p>
       </div>
     </section>
   )

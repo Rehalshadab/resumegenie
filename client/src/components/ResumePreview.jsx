@@ -1,4 +1,9 @@
-export default function ResumePreview({ resume, coverLetter, userData, onPaymentSuccess }) {
+import { useState } from 'react'
+import PaymentButton from './PaymentButton'
+
+export default function ResumePreview({ resume, coverLetter, userData, plan, onPaymentSuccess }) {
+  const [paid, setPaid] = useState(false)
+
   if (!resume) return null
 
   const sections = [
@@ -8,6 +13,11 @@ export default function ResumePreview({ resume, coverLetter, userData, onPayment
     { key: 'experience', label: 'Experience / Projects' },
     { key: 'certifications', label: 'Certifications' },
   ]
+
+  const handlePaymentDone = () => {
+    setPaid(true)
+    onPaymentSuccess()
+  }
 
   return (
     <div className="max-w-3xl mx-auto fade-in">
@@ -42,10 +52,19 @@ export default function ResumePreview({ resume, coverLetter, userData, onPayment
       )}
 
       <div className="text-center mt-6">
-        <button onClick={onPaymentSuccess}
-          className="btn-primary text-sm px-8 py-3">
-          Download PDF ↓
-        </button>
+        {paid ? (
+          <button onClick={onPaymentSuccess}
+            className="btn-primary text-sm px-8 py-3">
+            Download PDF ↓
+          </button>
+        ) : (
+          <PaymentButton
+            plan={plan}
+            amount={plan === 'pro' ? 79 : 49}
+            userData={userData}
+            onSuccess={handlePaymentDone}
+          />
+        )}
       </div>
     </div>
   )
