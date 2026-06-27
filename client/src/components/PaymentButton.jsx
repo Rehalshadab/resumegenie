@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const API = import.meta.env.VITE_API_URL || ''
 
@@ -8,6 +8,8 @@ export default function PaymentButton({ plan, amount: planAmount, userData, onSu
   const [utr, setUtr] = useState('')
   const [step, setStep] = useState('select')
   const [error, setError] = useState('')
+  const [autoConfirming, setAutoConfirming] = useState(false)
+  const verifiedRef = useRef(false)
 
   const label = plan === 'pro' ? `Resume + Cover Letter — ₹79` : `Resume Only — ₹49`
 
@@ -24,7 +26,7 @@ export default function PaymentButton({ plan, amount: planAmount, userData, onSu
       if (!data.success) throw new Error(data.error)
       setOrder(data)
       setStep('show')
-    } catch (err) {
+    } catch {
       setError('Failed to create payment. Please try again.')
     } finally {
       setLoading(false)
@@ -32,6 +34,8 @@ export default function PaymentButton({ plan, amount: planAmount, userData, onSu
   }
 
   const handleVerify = async () => {
+    if (verifiedRef.current) return
+    verifiedRef.current = true
     setLoading(true)
     try {
       const res = await fetch(`${API}/api/payment/verify-upi`, {
@@ -51,6 +55,32 @@ export default function PaymentButton({ plan, amount: planAmount, userData, onSu
     }
   }
 
+  const openUpiApp = (app) => {
+    if (!order) return
+    const intent = encodeURIComponent(order.upiIntent)
+    const schemes = {
+      gpay: `tez://upi/pay?pa=${order.upiVpa}&am=${order.amount}&tn=${order.orderId}&cu=INR`,
+      phonepe: `phonepe://pay?pa=${order.upiVpa}&am=${order.amount}&tn=${order.orderId}&cu=INR`,
+      paytm: `paytmmp://pay?pa=${order.upiVpa}&am=${order.amount}&tn=${order.orderId}&cu=INR`,
+    }
+    const url = schemes[app] || order.upiIntent
+    window.location.href = url
+  }
+
+  // Auto-detect when user returns from UPI app
+  useEffect(() => {
+    if (step !== 'show') return
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && !verifiedRef.current && !autoConfirming) {
+        setAutoConfirming(true)
+        setTimeout(() => handleVerify(), 500)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [step, order])
+
   if (step === 'show' && order) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setStep('select')}>
@@ -58,20 +88,37 @@ export default function PaymentButton({ plan, amount: planAmount, userData, onSu
           <h3 className="text-lg font-bold text-gray-900 mb-1">Pay via UPI</h3>
           <p className="text-sm text-gray-500 mb-4">{order.label} — ₹{order.amount}</p>
 
-          <img src={order.qrCodeUrl} alt="UPI QR Code" className="w-48 h-48 mx-auto mb-4 rounded-lg" />
+          <img src={order.qrCodeUrl} alt="UPI QR Code" className="w-48 h-48 mx-auto mb-3 rounded-lg border border-gray-200" />
 
-          <p className="text-xs text-gray-400 mb-1">Or pay to this UPI ID:</p>
-          <p className="text-sm font-mono font-bold text-primary-600 mb-4 select-all">{order.upiVpa}</p>
+          <p className="text-xs text-gray-400 mb-1">Or tap your preferred UPI app:</p>
+          <div className="flex gap-3 justify-center mb-4">
+            <button onClick={() => openUpiApp('gpay')}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 hover:border-green-400 hover:bg-green-50 transition-colors">
+              <span className="text-lg">🔵</span>
+              <span className="text-[11px] font-medium text-gray-600">GPay</span>
+            </button>
+            <button onClick={() => openUpiApp('phonepe')}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-colors">
+              <span className="text-lg">🟣</span>
+              <span className="text-[11px] font-medium text-gray-600">PhonePe</span>
+            </button>
+            <button onClick={() => openUpiApp('paytm')}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+              <span className="text-lg">🔷</span>
+              <span className="text-[11px] font-medium text-gray-600">Paytm</span>
+            </button>
+          </div>
 
-          <p className="text-xs text-gray-400 mb-3">Scan with any UPI app (Google Pay, PhonePe, Paytm) and pay</p>
+          <p className="text-xs text-gray-400 mb-3">Pay and come back — download unlocks automatically</p>
 
           <div className="space-y-2">
             <input type="text" value={utr} onChange={e => setUtr(e.target.value)}
-              placeholder="Enter UTR number (optional)" className="input-field text-sm text-center" />
+              placeholder="UTR number (optional, for backup)" className="input-field text-sm text-center" />
             <button onClick={handleVerify} disabled={loading}
               className="btn-primary w-full text-sm py-2.5">
               {loading ? 'Verifying...' : "✅ I've Paid — Unlock Download"}
             </button>
+            {autoConfirming && <p className="text-xs text-green-600">Payment detected! Verifying...</p>}
             <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700">
               Cancel
             </button>
