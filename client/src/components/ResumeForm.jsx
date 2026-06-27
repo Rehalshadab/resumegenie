@@ -6,7 +6,7 @@ const initialForm = {
   degree: '', college: '', branch: '', graduationYear: '', cgpa: '',
   isFresher: true, company: '', compRole: '', compDuration: '', responsibilities: '',
   skills: '', projects: [{ name: '', desc: '' }], certifications: '',
-  jobRole: '', jobDescription: '', resumeTone: 'professional',
+  jobRole: '', jobDescription: '',   resumeTone: 'professional', customPrompt: '',
 }
 
 const stepTitles = ['Personal Info', 'Education', 'Experience & Skills', 'Job Target']
@@ -249,6 +249,13 @@ export default function ResumeForm({ onSubmit, loading }) {
                 </label>
               ))}
             </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Custom Prompt (optional)</label>
+            <textarea value={form.customPrompt} onChange={e => update('customPrompt', e.target.value)}
+              placeholder="e.g. Emphasize my leadership skills, highlight my open-source contributions, mention I'm a quick learner..."
+              className="input-field min-h-[80px]" />
+            <p className="text-xs text-gray-400">Add any specific instructions for the resume generation.</p>
           </div>
         </div>
       )}

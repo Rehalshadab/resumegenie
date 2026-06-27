@@ -7,7 +7,8 @@ function generateResume(data) {
   const education = data.education || {};
   const projects = data.projects || [];
 
-  const summary = `${data.name || "Candidate"} is a motivated ${data.jobRole || "professional"}${education.degree ? " with a " + education.degree : ""}${education.branch ? " in " + education.branch : ""} seeking to leverage technical skills and academic background in a challenging role. ${skills.length > 0 ? "Proficient in " + skills.slice(0, 4).join(", ") + "." : ""} A quick learner with strong problem-solving abilities and a passion for building impactful solutions.`;
+  let summary = `${data.name || "Candidate"} is a motivated ${data.jobRole || "professional"}${education.degree ? " with a " + education.degree : ""}${education.branch ? " in " + education.branch : ""} seeking to leverage technical skills and academic background in a challenging role. ${skills.length > 0 ? "Proficient in " + skills.slice(0, 4).join(", ") + "." : ""} A quick learner with strong problem-solving abilities and a passion for building impactful solutions.`;
+  if (data.customPrompt) summary += `\n\nNote from candidate: ${data.customPrompt}`;
 
   const eduStr = education.degree
     ? `${education.degree}${education.branch ? " in " + education.branch : ""} — ${education.college || "University"}${education.graduationYear ? " (" + education.graduationYear + ")" : ""}${education.cgpa ? " | CGPA/Percentage: " + education.cgpa : ""}`
